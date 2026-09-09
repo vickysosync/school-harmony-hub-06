@@ -1,10 +1,33 @@
-import type { ReactNode } from "react";
-import { Printer, Download, Eye } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Printer, Download, Eye, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/context/AppContext";
-import { printArea } from "@/utils/helpers";
+import { downloadPdf, printArea } from "@/utils/helpers";
 
-export function DocToolbar({ docId, onPreview }: { docId: string; onPreview?: () => void }) {
+export function DocToolbar({
+  docId,
+  onPreview,
+  fileName,
+}: {
+  docId: string;
+  onPreview?: () => void;
+  fileName?: string;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  const savePdf = async () => {
+    setBusy(true);
+    try {
+      await downloadPdf(docId, fileName || docId);
+      toast.success("PDF downloaded");
+    } catch {
+      toast.error("Could not create the PDF. Use Print instead.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="mb-4 flex flex-wrap gap-2 print:hidden">
       {onPreview && (
@@ -15,12 +38,13 @@ export function DocToolbar({ docId, onPreview }: { docId: string; onPreview?: ()
       <Button onClick={() => printArea(docId)}>
         <Printer className="size-4" /> Print
       </Button>
-      <Button variant="outline" onClick={() => printArea(docId)}>
-        <Download className="size-4" /> Download PDF
+      <Button variant="outline" onClick={savePdf} disabled={busy}>
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Download PDF
       </Button>
     </div>
   );
 }
+
 
 export function Letterhead({ title }: { title: string }) {
   const { settings } = useApp();
